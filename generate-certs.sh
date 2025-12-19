@@ -15,7 +15,7 @@ openssl req -new -nodes -newkey rsa:2048 \
   -keyout $CERT_DIR/redis.key \
   -out $CERT_DIR/redis.csr \
   -subj "/CN=redis-cluster" \
-  -addext "subjectAltName = DNS:localhost,DNS:mmos-redis,IP:127.0.0.1"
+  -addext "subjectAltName = DNS:localhost,DNS:dev-redis,IP:127.0.0.1"
 
 # 3. Sign the Server Cert with CA
 openssl x509 -req -sha256 -days 365 \

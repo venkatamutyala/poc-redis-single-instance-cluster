@@ -8,6 +8,9 @@ AWS_ACCOUNT_ID := $(shell aws sts get-caller-identity --query Account --output t
 # --- Repository Configuration ---
 REPO_NAME      := $(shell echo $$REPO_NAME)
 
+# --- Version ---
+VERSION        := $(shell echo $$VERSION)
+
 # --- Strict Validation ---
 ifeq ($(strip $(AWS_REGION)),)
 $(error ERROR: AWS_REGION is not set. Export it with 'export AWS_REGION=your-region')
@@ -25,6 +28,7 @@ endif
 IMAGE_NAME     := custom-redis-cluster
 TAG            := latest
 FULL_IMAGE_URI := $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com/$(REPO_NAME):$(TAG)
+VERSION_TAG_URI := $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com/$(REPO_NAME):$(VERSION)
 
 # --- Test Credentials ---
 REDIS_PASS     := my-secret-password
@@ -36,6 +40,8 @@ info:
 	@echo "Detected AWS Account:    $(AWS_ACCOUNT_ID)"
 	@echo "Detected Repo Name:      $(REPO_NAME)"
 	@echo "Target ECR URI:          $(FULL_IMAGE_URI)"
+	@echo "Detected Version:        $(VERSION)"
+	@if [ -n "$(VERSION)" ]; then echo "Version ECR URI:         $(VERSION_TAG_URI)"; fi
 
 build:
 	docker build -t $(IMAGE_NAME) .
@@ -46,6 +52,11 @@ login:
 push: build login
 	docker tag $(IMAGE_NAME) $(FULL_IMAGE_URI)
 	docker push $(FULL_IMAGE_URI)
+	@if [ -n "$(VERSION)" ]; then \
+		echo "Tagging image with version $(VERSION) and pushing..."; \
+		docker tag $(IMAGE_NAME) $(VERSION_TAG_URI); \
+		docker push $(VERSION_TAG_URI); \
+	fi
 
 test: build
 	@echo "Starting Redis Cluster test container..."

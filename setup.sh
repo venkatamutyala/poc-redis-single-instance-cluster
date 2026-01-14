@@ -39,7 +39,7 @@ docker run --rm -it \
     # 3. Start Redis (Background)
     echo "🚀 Starting Redis..."
     redis-server \
-      --tls-port 6379 --port 0 \
+      --tls-port 6380 --port 6379 \
       --tls-cert-file /certs/redis.crt \
       --tls-key-file /certs/redis.key \
       --tls-ca-cert-file /certs/ca.crt \

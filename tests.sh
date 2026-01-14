@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 
-docker exec -it redis sh -c '
-  export FLAGS="--tls --insecure --cert /certs/redis.crt --key /certs/redis.key --cacert /certs/ca.crt -a my-secret-password"
+REDIS_PASSWORD="${REDIS_PASSWORD:-my-secret-password}"
+
+docker exec -e REDIS_PASSWORD="$REDIS_PASSWORD" redis sh -c '
+  export FLAGS="--tls --insecure --cert /certs/redis.crt --key /certs/redis.key --cacert /certs/ca.crt -a $REDIS_PASSWORD"
   
   echo "--- Cluster Info ---"
   redis-cli $FLAGS cluster info

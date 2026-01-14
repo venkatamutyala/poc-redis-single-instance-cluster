@@ -1,6 +1,8 @@
 #!/bin/sh
 
 # 1. Start Redis in the background
+REDIS_USER="${REDIS_USERNAME:-default}"
+
 redis-server \
   --tls-port 6380 --port 6379 \
   --tls-cert-file /certs/redis.crt \
@@ -12,15 +14,31 @@ redis-server \
   --appendonly yes &
 
 # 2. Wait for Redis to be ready
-until redis-cli --tls --cert /certs/redis.crt --key /certs/redis.key --cacert /certs/ca.crt -a "${REDIS_PASSWORD}" ping | grep -q "PONG"; do
+until redis-cli --tls --cert /certs/redis.crt --key /certs/redis.key --cacert /certs/ca.crt -u "redis://default:${REDIS_PASSWORD}@127.0.0.1:6380" ping | grep -q "PONG"; do
   echo "Waiting for Redis..."
   sleep 1
 done
 
+# 2.5. Create custom user if needed
+if [ "$REDIS_USER" != "default" ]; then
+  echo "✅ Creating Redis user: $REDIS_USER with password"
+  redis-cli --tls --cert /certs/redis.crt --key /certs/redis.key --cacert /certs/ca.crt -u "redis://default:${REDIS_PASSWORD}@127.0.0.1:6380" ACL SETUSER "$REDIS_USER" on ">$(echo $REDIS_PASSWORD)" '~*' '+@all'
+  RESULT=$?
+  if [ $RESULT -eq 0 ]; then
+    echo "✅ User created successfully"
+  else
+    echo "❌ Failed to create user (exit code: $RESULT)"
+  fi
+  echo "✅ Verifying user creation..."
+  redis-cli --tls --cert /certs/redis.crt --key /certs/redis.key --cacert /certs/ca.crt -u "redis://default:${REDIS_PASSWORD}@127.0.0.1:6380" ACL LIST | grep -i "$REDIS_USER"
+  echo "⏳ Waiting for ACL changes to propagate..."
+  sleep 3
+fi
+
 # 3. Assign slots if not already assigned
-if ! redis-cli --tls --cert /certs/redis.crt --key /certs/redis.key --cacert /certs/ca.crt -a "${REDIS_PASSWORD}" cluster info | grep -q "cluster_state:ok"; then
+if ! redis-cli --tls --cert /certs/redis.crt --key /certs/redis.key --cacert /certs/ca.crt -u "redis://${REDIS_USER}:${REDIS_PASSWORD}@127.0.0.1:6380" cluster info | grep -q "cluster_state:ok"; then
   echo "🔧 Assigning slots..."
-  redis-cli --tls --cert /certs/redis.crt --key /certs/redis.key --cacert /certs/ca.crt -a "${REDIS_PASSWORD}" cluster addslotsrange 0 16383
+  redis-cli --tls --cert /certs/redis.crt --key /certs/redis.key --cacert /certs/ca.crt -u "redis://${REDIS_USER}:${REDIS_PASSWORD}@127.0.0.1:6380" cluster addslotsrange 0 16383
 fi
 
 # 4. Bring background process to foreground

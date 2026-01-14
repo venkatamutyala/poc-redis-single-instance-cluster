@@ -31,7 +31,10 @@ FULL_IMAGE_URI := $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com/$(REPO_N
 VERSION_TAG_URI := $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com/$(REPO_NAME):$(VERSION)
 
 # --- Test Credentials ---
-REDIS_PASS     := my-secret-password
+REDIS_PASSWORD := $(shell echo $$REDIS_PASSWORD)
+REDIS_PASSWORD := $(if $(REDIS_PASSWORD),$(REDIS_PASSWORD),my-secret-password)
+REDIS_USERNAME := $(shell echo $$REDIS_USERNAME)
+REDIS_USERNAME := $(if $(REDIS_USERNAME),$(REDIS_USERNAME),default)
 
 .PHONY: build login push test clean info
 
@@ -58,24 +61,35 @@ push: build login
 		docker push $(VERSION_TAG_URI); \
 	fi
 
-test: build
+test: build clean
 	@echo "Starting Redis Cluster test container..."
 	docker run -d --name redis-test-run \
-		-e REDIS_PASSWORD=$(REDIS_PASS) \
+		-e REDIS_PASSWORD=$(REDIS_PASSWORD) \
+		-e REDIS_USERNAME=$(REDIS_USERNAME) \
 		-p 6379:6379 \
 		$(IMAGE_NAME)
 	@echo "Waiting for Redis TLS and Cluster initialization..."
 	@count=0; \
-	until docker exec redis-test-run redis-cli --tls --cert /certs/redis.crt --key /certs/redis.key --cacert /certs/ca.crt -a $(REDIS_PASS) ping | grep -q "PONG"; do \
+	until docker exec redis-test-run redis-cli --tls --insecure --cert /certs/redis.crt --key /certs/redis.key --cacert /certs/ca.crt -u "redis://default:$(REDIS_PASSWORD)@127.0.0.1:6380" ping | grep -q "PONG"; do \
 		if [ $$count -eq 15 ]; then echo "Timed out waiting for Redis"; $(MAKE) clean; exit 1; fi; \
 		echo "Waiting for PONG..."; \
 		sleep 2; \
 		count=$$((count + 1)); \
 	done
-	@echo "Redis is UP. Checking Cluster Nodes:"
-	docker exec redis-test-run redis-cli --tls --cert /certs/redis.crt --key /certs/redis.key --cacert /certs/ca.crt -a $(REDIS_PASS) cluster nodes
+	@echo "Redis is UP. Testing with username: $(REDIS_USERNAME)"
+	@echo "Waiting for custom user authentication to be ready..."
+	@count=0; \
+	until docker exec redis-test-run redis-cli --tls --insecure --cert /certs/redis.crt --key /certs/redis.key --cacert /certs/ca.crt -u "redis://$(REDIS_USERNAME):$(REDIS_PASSWORD)@127.0.0.1:6380" ping 2>/dev/null | grep -q "PONG"; do \
+		if [ $$count -eq 10 ]; then echo "Timed out waiting for custom user auth"; $(MAKE) clean; exit 1; fi; \
+		echo "  Waiting for user auth..."; \
+		sleep 1; \
+		count=$$((count + 1)); \
+	done
+	@echo "✅ Custom user authenticated successfully - Ready for cluster operations"
+	@echo "Checking Cluster Nodes:"
+	@docker exec redis-test-run redis-cli --tls --insecure --cert /certs/redis.crt --key /certs/redis.key --cacert /certs/ca.crt -u "redis://$(REDIS_USERNAME):$(REDIS_PASSWORD)@127.0.0.1:6380" cluster nodes
 	@echo "Checking Cluster Info:"
-	docker exec redis-test-run redis-cli --tls --cert /certs/redis.crt --key /certs/redis.key --cacert /certs/ca.crt -a $(REDIS_PASS) cluster info
+	@docker exec redis-test-run redis-cli --tls --insecure --cert /certs/redis.crt --key /certs/redis.key --cacert /certs/ca.crt -u "redis://$(REDIS_USERNAME):$(REDIS_PASSWORD)@127.0.0.1:6380" cluster info
 	@$(MAKE) clean
 
 clean:

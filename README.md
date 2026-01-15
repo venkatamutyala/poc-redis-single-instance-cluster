@@ -34,6 +34,7 @@ The commands above should match the screenshots below:
 - **VERSION** — when set (e.g., `1.2.3`), `make push` will tag and push a versioned image in addition to `latest`.
 - **REDIS_PASSWORD** — password for Redis authentication (defaults to `my-secret-password`).
 - **REDIS_USERNAME** — username for Redis authentication (defaults to `default`).
+- **REDIS_LOG_LEVEL** — Redis log level: `debug`, `verbose`, `notice`, or `warning` (defaults to `notice`).
 - **TAG** — image tag (defaults to `latest`), can be overridden by exporting `TAG` or passing `TAG=...` to `make`.
 
 ### Quick usage 💡

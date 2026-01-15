@@ -2,8 +2,10 @@
 
 # 1. Start Redis in the background
 REDIS_USER="${REDIS_USERNAME:-default}"
+REDIS_LOG_LEVEL="${REDIS_LOG_LEVEL:-notice}"
 
 redis-server \
+  --loglevel ${REDIS_LOG_LEVEL} \
   --tls-port 6380 --port 6379 \
   --tls-cert-file /certs/redis.crt \
   --tls-key-file /certs/redis.key \

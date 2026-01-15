@@ -8,6 +8,7 @@ redis-server \
   --tls-cert-file /certs/redis.crt \
   --tls-key-file /certs/redis.key \
   --tls-ca-cert-file /certs/ca.crt \
+  --tls-auth-clients no \
   --cluster-enabled yes \
   --requirepass "${REDIS_PASSWORD}" \
   --masterauth "${REDIS_PASSWORD}" \

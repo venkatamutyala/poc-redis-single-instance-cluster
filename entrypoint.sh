@@ -3,6 +3,8 @@
 # 1. Start Redis in the background
 REDIS_USER="${REDIS_USERNAME:-default}"
 REDIS_LOG_LEVEL="${REDIS_LOG_LEVEL:-notice}"
+CLUSTER_ANNOUNCE_HOSTNAME="${CLUSTER_ANNOUNCE_HOSTNAME:-localhost}"
+CLUSTER_PREFERRED_ENDPOINT_TYPE="${CLUSTER_PREFERRED_ENDPOINT_TYPE:-ip}"
 
 redis-server \
   --loglevel ${REDIS_LOG_LEVEL} \
@@ -12,6 +14,8 @@ redis-server \
   --tls-ca-cert-file /certs/ca.crt \
   --tls-auth-clients no \
   --cluster-enabled yes \
+  --cluster-announce-hostname ${CLUSTER_ANNOUNCE_HOSTNAME} \
+  --cluster-preferred-endpoint-type ${CLUSTER_PREFERRED_ENDPOINT_TYPE} \
   --requirepass "${REDIS_PASSWORD}" \
   --masterauth "${REDIS_PASSWORD}" \
   --appendonly yes &

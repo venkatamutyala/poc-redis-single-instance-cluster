@@ -35,6 +35,8 @@ The commands above should match the screenshots below:
 - **REDIS_PASSWORD** — password for Redis authentication (defaults to `my-secret-password`).
 - **REDIS_USERNAME** — username for Redis authentication (defaults to `default`).
 - **REDIS_LOG_LEVEL** — Redis log level: `debug`, `verbose`, `notice`, or `warning` (defaults to `notice`).
+- **CLUSTER_ANNOUNCE_HOSTNAME** — hostname for cluster communication (defaults to `localhost`).
+- **CLUSTER_PREFERRED_ENDPOINT_TYPE** — preferred endpoint type for cluster: `ip` or `hostname` (defaults to `ip`).
 - **TAG** — image tag (defaults to `latest`), can be overridden by exporting `TAG` or passing `TAG=...` to `make`.
 
 ### Quick usage 💡
